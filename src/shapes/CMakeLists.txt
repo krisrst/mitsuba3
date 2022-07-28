@@ -11,6 +11,8 @@ add_plugin(rectangle   rectangle.cpp)
 add_plugin(sphere      sphere.cpp)
 add_plugin(cube        cube.cpp)
 
+add_plugin(asphsurf    aspheric_surf.cpp)
+
 add_plugin(shapegroup  shapegroup.cpp)
 add_plugin(instance    instance.cpp)
 add_plugin(merge       merge.cpp)
