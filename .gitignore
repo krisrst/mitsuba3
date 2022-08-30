@@ -28,3 +28,10 @@ __pycache__
 /docs/src/quickstart
 /docs/src/generated
 /docs/resources
+
+# cscope/vim
+cscope*
+vimsession
+
+# Mitsuba config
+mitsuba.conf
