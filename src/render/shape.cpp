@@ -134,7 +134,11 @@ void embree_intersect_scalar(int* valid,
     ray.d.z() = rtc_ray->dir_z;
     ray.time  = rtc_ray->time;
 
+    //std::cerr << "ray.o " << ray.o << std::endl;
+#if 0
     ray.o += ray.d * rtc_ray->tnear;
+    std::cerr << "after " << ray.o << std::endl;
+#endif
     ray.maxt = rtc_ray->tfar - rtc_ray->tnear;
 
     // Check whether this is a shadow ray or not

@@ -344,20 +344,29 @@ public:
         active &= solution_found && !out_bounds && !in_bounds;
 
         FloatP t = dr::select(
-            active, dr::select(near_t < Value(0.0), FloatP(far_t), FloatP(near_t)),
-            dr::Infinity<FloatP>);
+                              active, dr::select(near_t < Value(0.0), FloatP(far_t), FloatP(near_t)),
+                              dr::Infinity<FloatP>);
+#if 1
+        Ray3fP out_ray;
+        out_ray.o = ray(t);
+        if( dr::any_or<true>( active ) ){
+            std::cerr << this->id() << "origin," << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "," << ray.d[0] << "," << ray.d[1] << "," << ray.d[2] << "\n";
+            //std::cerr << this->id() << "near_t," << near_t << " far_t " << far_t << std::endl;
+            std::cerr << this->id() << "hit," << out_ray.o[0] << "," << out_ray.o[1] << "," << out_ray.o[2] << "\n";
+        }
+#endif
 
         return { t, dr::zeros<Point<FloatP, 2>>(), ((uint32_t) -1), 0 };
     }
 
     template <typename FloatP, typename Ray3fP>
-    dr::mask_t<FloatP> ray_test_impl(const Ray3fP &ray,
-                                     dr::mask_t<FloatP> active) const {
-        MI_MASK_ARGUMENT(active);
+        dr::mask_t<FloatP> ray_test_impl(const Ray3fP &ray,
+                                         dr::mask_t<FloatP> active) const {
+            MI_MASK_ARGUMENT(active);
 
-        using Value = std::conditional_t<dr::is_cuda_v<FloatP> ||
-                                              dr::is_diff_v<Float>,
-                                          dr::float32_array_t<FloatP>,
+            using Value = std::conditional_t<dr::is_cuda_v<FloatP> ||
+                dr::is_diff_v<Float>,
+                dr::float32_array_t<FloatP>,
                                           dr::float64_array_t<FloatP>>;
         using Value3 = Vector<Value, 3>;
         using ScalarValue  = dr::scalar_t<Value>;
@@ -426,6 +435,18 @@ public:
 
         // Re-project onto the sphere to improve accuracy
         si.p = dr::fmadd(si.sh_frame.n, m_radius.value(), m_center.value());
+
+#if 0
+        //Ray3fP out_ray;
+        //out_ray.o = ray(t);
+        if( dr::any_or<true>( active ) ){
+            if( dr::any_or<true>( ray.o[2] < (-5790.978516 + 1.) ) ){
+            std::cerr << this->id() << "->ray," << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "," << ray.d[0] << "," << ray.d[1] << "," << ray.d[2] << "\n";
+            //std::cerr << this->id() << "near_t," << near_t << " far_t " << far_t << std::endl;
+            std::cerr << this->id() << "->p," << si.p[0] << "," << si.p[1] << "," << si.p[2] << "\n";
+            }
+        }
+#endif
 
         if (likely(need_uv)) {
             Vector3f local = m_to_object.value().transform_affine(si.p);

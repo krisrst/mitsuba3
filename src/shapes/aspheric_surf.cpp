@@ -13,7 +13,7 @@
 #include "optix/aspheric_surf.cuh"
 #endif
 
-#if 0
+#if 1
 #define DEBUG_RAYS
 #endif
 
@@ -330,18 +330,43 @@ NAMESPACE_BEGIN(mitsuba)
 #ifdef DEBUG_RAYS
                     dr::mask_t<FloatP> result = (t != dr::Infinity<FloatP>);
 
+#if 0
                     Ray3fP out_ray;
+                    out_ray.o = ray(t);
+                    if( dr::any_or<true>( result ) ){
+                        std::cerr << this->id() << "origin," << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "," << ray.d[0] << "," << ray.d[1] << "," << ray.d[2] << "\n";
+                        //std::cerr << this->id() << "near_t," << near_t << " far_t " << far_t << std::endl;
+                        std::cerr << this->id() << "hit," << out_ray.o[0] << "," << out_ray.o[1] << "," << out_ray.o[2] << "\n";
+                    }
+#endif
 
+#if 0
+                    dr::mask_t<FloatP> testres = (near_t < Value(0.0) && far_t < Value(0.0)) && solution;
+
+                    if( dr::any_or<true>( testres ) )
+                        if( 0 || ( ++dbg2 > 30000 ) ){
+
+                            out_ray.o = ray(t);
+
+                            std::cerr << "point1," << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "\n";
+                            std::cerr << "vec1," << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "," << ray.d[0] << "," << ray.d[1] << "," << ray.d[2]  << "\n";
+                            //std::cerr << "point2," << out_ray.o[0] << "," << out_ray.o[1] << "," << out_ray.o[2] << "\n";
+                            dbg2 = 0;
+                        }
+#endif
+
+#if 0
                     if( dr::any_or<true>( result ) )
-                    if( 0 || ( ++dbg2 > 30000 ) ){
+                    if( 1 || ( ++dbg2 > 30000 ) ){
                         
                         out_ray.o = ray(t);
 
-                        std::cerr << "point1," << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "\n";
-                        //std::cerr << "vec1," << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "," << ray.d[0] << "," << ray.d[1] << "," << ray.d[2]  << "\n";
-                        std::cerr << "point2," << out_ray.o[0] << "," << out_ray.o[1] << "," << out_ray.o[2] << "\n";
+                        //std::cerr << "point1," << this->id() << "," << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "\n";
+                        std::cerr << "vec1," << this->id() << "," << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "," << ray.d[0] << "," << ray.d[1] << "," << ray.d[2]  << "\n";
+                        std::cerr << "point2," << this->id() << "," << out_ray.o[0] << "," << out_ray.o[1] << "," << out_ray.o[2] << "\n";
                         dbg2 = 0;
                     }
+#endif
 #endif
 
                     return { t, dr::zeros<Point<FloatP, 2>>(), ((uint32_t) -1), 0 };
@@ -356,6 +381,8 @@ NAMESPACE_BEGIN(mitsuba)
                 dr::mask_t<FloatP> solution_found;
 
                 dr::mask_t<FloatP> active_ = active;
+
+                std::cerr << "OBS OBS RAY TEST" << std::endl;
 
                 auto [t, unused0, unused1, unused2] = ray_intersect_preliminary_impl<FloatP, Ray3fP>(ray, active_);
 
@@ -417,6 +444,17 @@ NAMESPACE_BEGIN(mitsuba)
             // ellipsis and the crossing point apparently.
             si.p = ray(pi.t);
 
+#if 0
+            if( 1 || ( ++dbg > 100000 ) ){
+                std::cerr << "vec1," << this->id() << "," << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "," << ray.d[0] << "," << ray.d[1] << "," << ray.d[2]  << std::endl;
+                std::cerr << "point2," << this->id() << "," << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << std::endl;
+
+                //std::cerr << "point1," << si.p[0] << "," << si.p[1] << "," << si.p[2] << "\n";
+                //std::cerr << "vec4," << si.p[0] << "," << si.p[1] << "," << si.p[2] << "," << si.sh_frame.n[0] << "," << si.sh_frame.n[1] << "," << si.sh_frame.n[2] << "\n";
+                dbg = 0;
+            }
+#endif
+
             if (likely(need_uv)) {
                 Vector3f local = m_to_object.value().transform_affine(si.p);
 
@@ -429,23 +467,37 @@ NAMESPACE_BEGIN(mitsuba)
                     si.dp_du = Vector3f( fx, 1.0, 0.0 );
                     si.dp_dv = Vector3f( fy, 0.0, 1.0 );
                 }
-
             }
 
             si.n = si.sh_frame.n;
 
+#if 0
+            //Ray3fP out_ray;
+            //out_ray.o = ray(t);
+            if( dr::any_or<true>( active ) ){
+                //std::cerr << this->id() << "->point," << point[0] << "," << point[1] << "," << point[2] << "\n";
+                std::cerr << this->id() << "->ray," << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "," << ray.d[0] << "," << ray.d[1] << "," << ray.d[2] << "\n";
+                std::cerr << this->id() << "->p," << si.p[0] << "," << si.p[1] << "," << si.p[2] << "\n";
+                std::cerr << this->id() << "->n," << si.n[0] << "," << si.n[1] << "," << si.n[2] << "\n";
+            }
+#endif
+
+#if 0
             if (need_dn_duv) {
                 Float inv_radius =
                     (m_flip_normals ? -1.f : 1.f) * dr::rcp(m_r.value());
                 si.dn_du = si.dp_du * inv_radius;
                 si.dn_dv = si.dp_dv * inv_radius;
             }
+#endif
 
             si.shape    = this;
             si.instance = nullptr;
 
+#if 0
             if (unlikely(has_flag(ray_flags, RayFlags::BoundaryTest)))
                 si.boundary_test = dr::abs(dr::dot(si.sh_frame.n, -ray.d));
+#endif
 
             if (need_dn_duv) {
                 std::cout << "dNSdUV\n";

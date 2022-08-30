@@ -71,6 +71,7 @@ struct Interaction {
 
     /// Spawn a semi-infinite ray towards the given direction
     Ray3f spawn_ray(const Vector3f &d) const {
+        //return Ray3f(p, d, dr::Largest<Float>, time, wavelengths);
         return Ray3f(offset_p(d), d, dr::Largest<Float>, time, wavelengths);
     }
 
@@ -97,7 +98,22 @@ private:
      */
     Point3f offset_p(const Vector3f &d) const {
         Float mag = (1.f + dr::max(dr::abs(p))) * math::RayEpsilon<Float>;
+#if 0
+        std::cerr << "dr::max is " << dr::max(dr::abs(p)) << std::endl;
+        std::cerr << "dr::abs is " << dr::abs(p) << std::endl;
+        std::cerr << "mag is first " << mag << std::endl;
+#endif
         mag = dr::detach(dr::mulsign(mag, dr::dot(n, d)));
+#if 0
+        /*
+            interaction,RayEpsilon 8.9407e-05 - 5.96046e-08
+            interaction,0.518116 - [401.743, 273.884, -5794.03] - [0.0579773, 0.0294018, 0.997885]
+            interaction,           [401.773, 273.899, -5793.52]
+        */
+        std::cerr << "interaction,RayEpsilon " << math::RayEpsilon<Float> << " - " << dr::Epsilon<Float> << std::endl;
+        std::cerr << "interaction," << mag << " - " << p << " - " << n << std::endl;
+        std::cerr << "interaction," << dr::fmadd(mag, dr::detach(n), p) << std::endl;
+#endif
         return dr::fmadd(mag, dr::detach(n), p);
     }
 };

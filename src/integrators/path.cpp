@@ -144,10 +144,14 @@ public:
             /* dr::Loop implicitly masks all code in the loop using the 'active'
                flag, so there is no need to pass it to every function */
 
+            //std::cerr << "path.cpp ray IN " << ray << std::endl;
+
             SurfaceInteraction3f si =
                 scene->ray_intersect(ray,
                                      /* ray_flags = */ +RayFlags::All,
                                      /* coherent = */ dr::eq(depth, 0u));
+
+            //std::cerr << "path.cpp si.p " << si.p << std::endl;
 
             // ---------------------- Direct emission ----------------------
 
@@ -224,7 +228,11 @@ public:
                 bsdf->sample(bsdf_ctx, si, sample_1, sample_2, active_next);
             bsdf_weight = si.to_world_mueller(bsdf_weight, -bsdf_sample.wo, si.wi);
 
+            //std::cerr << "path.cpp bsdf_sample " << bsdf_sample << std::endl;
+            //std::cerr << "path.cpp si.to_world " << si.to_world(bsdf_sample.wo) << std::endl;
+            //std::cerr << "path.cpp PRE 231 si.p " << si.p << std::endl;
             ray = si.spawn_ray(si.to_world(bsdf_sample.wo));
+            //std::cerr << "path.cpp:231 ray " << ray << std::endl;
 
             /* When the path tracer is differentiated, we must be careful that
                the generated Monte Carlo samples are detached (i.e. don't track
@@ -233,6 +241,7 @@ public:
                BSDF differentiably with the detached sample in that case. */
             if (dr::grad_enabled(ray)) {
                 ray = dr::detach<true>(ray);
+                //std::cerr << "path.cpp:240 ray " << ray << std::endl;
 
                 // Recompute 'wo' to propagate derivatives to cosine term
                 Vector3f wo = si.to_local(ray.d);
