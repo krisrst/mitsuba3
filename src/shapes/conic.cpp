@@ -10,7 +10,7 @@
 #include <mitsuba/render/shape.h>
 
 #if defined(MI_ENABLE_CUDA)
-#include "optix/aspheric_surf.cuh"
+#include "optix/conic.cuh"
 #endif
 
 #if 0
@@ -18,11 +18,6 @@
 #endif
 
 NAMESPACE_BEGIN(mitsuba)
-
-#ifdef DEBUG_RAYS
-    static int dbg = 0;
-    static int dbg2 = 0;
-#endif // DEBUG_RAYS
 
     template <typename Float, typename Spectrum>
     class AsphSurf final : public Shape<Float, Spectrum> {
@@ -327,22 +322,6 @@ NAMESPACE_BEGIN(mitsuba)
                                                        dr::Infinity<FloatP>) );
 
                     t = dr::select( near_t <= maxt, t, dr::Infinity<FloatP> );
-#ifdef DEBUG_RAYS
-                    dr::mask_t<FloatP> result = (t != dr::Infinity<FloatP>);
-
-                    Ray3fP out_ray;
-
-                    if( dr::any_or<true>( result ) )
-                    if( 0 || ( ++dbg2 > 30000 ) ){
-                        
-                        out_ray.o = ray(t);
-
-                        std::cerr << "point1," << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "\n";
-                        //std::cerr << "vec1," << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "," << ray.d[0] << "," << ray.d[1] << "," << ray.d[2]  << "\n";
-                        std::cerr << "point2," << out_ray.o[0] << "," << out_ray.o[1] << "," << out_ray.o[2] << "\n";
-                        dbg2 = 0;
-                    }
-#endif
 
                     return { t, dr::zeros<Point<FloatP, 2>>(), ((uint32_t) -1), 0 };
                 }
