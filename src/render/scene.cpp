@@ -5,6 +5,11 @@
 #include <mitsuba/render/scene.h>
 #include <mitsuba/render/integrator.h>
 
+#include <iostream>
+#include <fstream>
+
+static std::ofstream ray_fp;
+
 #if defined(MI_ENABLE_EMBREE)
 #  include "scene_embree.inl"
 #else
@@ -106,10 +111,24 @@ MI_VARIANT Scene<Float, Spectrum>::~Scene() {
 
 // -----------------------------------------------------------------------
 
+MI_VARIANT void
+Scene<Float, Spectrum>::debugrays() {
+    this->dbgrays = true;
+    ray_fp.open("rays.csv", std::ios::out | std::ios::trunc );
+
+    Log(Warn, "Scene plugin will store ray vectors to rays.csv");
+    Log(Warn, "This process takes up a lot of time and disk space.");
+    Log(Warn, "Consider reducing rendering width and height if you have not done so already.");
+}
+
 MI_VARIANT typename Scene<Float, Spectrum>::SurfaceInteraction3f
 Scene<Float, Spectrum>::ray_intersect(const Ray3f &ray, uint32_t ray_flags, Mask coherent, Mask active) const {
     MI_MASKED_FUNCTION(ProfilerPhase::RayIntersect, active);
     DRJIT_MARK_USED(coherent);
+
+    if( this->dbgrays ){
+        ray_fp << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "," << ray.d[0] << "," << ray.d[1] << "," << ray.d[2] << std::endl;
+    }
 
     if constexpr (dr::is_cuda_v<Float>)
         return ray_intersect_gpu(ray, ray_flags, active);

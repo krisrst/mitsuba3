@@ -6,6 +6,9 @@
 #include <mitsuba/render/fwd.h>
 #include <mitsuba/render/sensor.h>
 
+#include <iostream>
+#include <fstream>
+
 NAMESPACE_BEGIN(mitsuba)
 
 /**
@@ -72,6 +75,8 @@ public:
                                        Mask active = true) const {
         return ray_intersect(ray, +RayFlags::All, false, active);
     }
+
+    void debugrays();
 
     /**
      * \brief Intersect a ray with the shapes comprising the scene and return a
@@ -559,6 +564,9 @@ protected:
     void *m_accel = nullptr;
     /// Handle to the IAS used to ensure its lifetime in jit variants
     UInt64 m_accel_handle;
+
+    /// Log ray vectors to file
+    bool dbgrays = false;
 
     ScalarBoundingBox3f m_bbox;
 

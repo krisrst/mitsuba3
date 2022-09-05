@@ -107,6 +107,9 @@ void scene_static_accel_shutdown() {
     Scene<Float, Spectrum>::static_accel_shutdown();
 }
 
+//std::ofstream MI_EXPORT_LIB ray_fp;
+static bool debugrays = false;
+
 template <typename Float, typename Spectrum>
 void render(Object *scene_, size_t sensor_i, fs::path filename) {
     auto *scene = dynamic_cast<Scene<Float, Spectrum> *>(scene_);
@@ -125,6 +128,10 @@ void render(Object *scene_, size_t sensor_i, fs::path filename) {
     /* critical section */ {
         std::lock_guard<std::mutex> guard(develop_callback_mutex);
         develop_callback = [&]() { film->write(filename); };
+    }
+
+    if( debugrays ){
+        scene->debugrays();
     }
 
     integrator->render(scene, (uint32_t) sensor_i,
@@ -173,6 +180,7 @@ int main(int argc, char *argv[]) {
     auto arg_help      = parser.add(StringVec{ "-h", "--help" });
     auto arg_mode      = parser.add(StringVec{ "-m", "--mode" }, true);
     auto arg_paths     = parser.add(StringVec{ "-a" }, true);
+    auto arg_dbgrays   = parser.add(StringVec{ "j", "--debug-rays" }, false);
     auto arg_extra     = parser.add("", true);
 
     // Specialized flags for the JIT compiler
@@ -208,6 +216,11 @@ int main(int argc, char *argv[]) {
         while (arg && *arg) {
             log_level++;
             arg = arg->next();
+        }
+
+        if( *arg_dbgrays ){
+            std::cout << "trur!" << std::endl;
+            debugrays = true;
         }
 
         // Set the log level
@@ -348,7 +361,11 @@ int main(int argc, char *argv[]) {
         }
 
         while (arg_extra && *arg_extra) {
+
             fs::path filename(arg_extra->as_string());
+
+            std::cout << filename << std::endl;
+
             ref<FileResolver> fr2 = new FileResolver(*fr);
             thread->set_file_resolver(fr2);
 
