@@ -5,6 +5,11 @@
 #include <mitsuba/render/scene.h>
 #include <mitsuba/render/integrator.h>
 
+#include <iostream>
+#include <fstream>
+
+static std::ofstream ray_fp;
+
 #if defined(MI_ENABLE_EMBREE)
 #  include "scene_embree.inl"
 #else
@@ -106,15 +111,81 @@ MI_VARIANT Scene<Float, Spectrum>::~Scene() {
 
 // -----------------------------------------------------------------------
 
+MI_VARIANT void
+Scene<Float, Spectrum>::debugrays() {
+    this->dbgrays = true;
+    ray_fp.open("rays.csv", std::ios::out | std::ios::trunc );
+
+    Log(Warn, "Scene plugin will store ray vectors to rays.csv");
+    Log(Warn, "This process takes up a lot of time and disk space.");
+    Log(Warn, "Consider reducing rendering width and height if you have not done so already.");
+}
+
 MI_VARIANT typename Scene<Float, Spectrum>::SurfaceInteraction3f
 Scene<Float, Spectrum>::ray_intersect(const Ray3f &ray, uint32_t ray_flags, Mask coherent, Mask active) const {
     MI_MASKED_FUNCTION(ProfilerPhase::RayIntersect, active);
     DRJIT_MARK_USED(coherent);
 
+    SurfaceInteraction3f si;
+
     if constexpr (dr::is_cuda_v<Float>)
-        return ray_intersect_gpu(ray, ray_flags, active);
+        si = ray_intersect_gpu(ray, ray_flags, active);
     else
-        return ray_intersect_cpu(ray, ray_flags, coherent, active);
+        si = ray_intersect_cpu(ray, ray_flags, coherent, active);
+
+    if constexpr (dr::is_jit_v<Float>) {
+        if( this->dbgrays ){
+            // cuda_rgb
+            for( size_t i=0; i < ray.o[0].size(); i++){
+                if( si.shape[i] ){
+                    ray_fp << si.shape[i]->id() << ",";
+                    ray_fp << ray.o[0][i] << ",";
+                    ray_fp << ray.o[1][i] << ",";
+                    ray_fp << ray.o[2][i] << ",";
+                    ray_fp << ray.d[0][i] << ",";
+                    ray_fp << ray.d[1][i] << ",";
+                    ray_fp << ray.d[2][i] << ",";
+                    ray_fp << si.t[i] << std::endl;
+                }
+                else{
+                    ray_fp << "nohit" << ",";
+                    ray_fp << ray.o[0][i] << ",";
+                    ray_fp << ray.o[1][i] << ",";
+                    ray_fp << ray.o[2][i] << ",";
+                    ray_fp << ray.d[0][i] << ",";
+                    ray_fp << ray.d[1][i] << ",";
+                    ray_fp << ray.d[2][i] << std::endl;
+                }
+            }
+        }
+    }
+    else{
+        // scalar_rgb
+        if( this->dbgrays ){
+            if( si.shape ){
+                ray_fp << si.shape->id() << ",";
+                ray_fp << ray.o[0] << ",";
+                ray_fp << ray.o[1] << ",";
+                ray_fp << ray.o[2] << ",";
+                ray_fp << ray.d[0] << ",";
+                ray_fp << ray.d[1] << ",";
+                ray_fp << ray.d[2] << ",";
+                ray_fp << si.t << std::endl;
+            }
+            else{
+                ray_fp << "nohit,";
+                ray_fp << ray.o[0] << ",";
+                ray_fp << ray.o[1] << ",";
+                ray_fp << ray.o[2] << ",";
+                ray_fp << ray.d[0] << ",";
+                ray_fp << ray.d[1] << ",";
+                ray_fp << ray.d[2] << ",";
+                ray_fp << si.t << std::endl;
+            }
+        }
+    }
+
+    return si;
 }
 
 MI_VARIANT typename Scene<Float, Spectrum>::PreliminaryIntersection3f

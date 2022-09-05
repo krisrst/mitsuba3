@@ -6,6 +6,9 @@
 #include <mitsuba/render/integrator.h>
 #include <mitsuba/render/records.h>
 
+#include <iostream>
+#include <fstream>
+
 NAMESPACE_BEGIN(mitsuba)
 
 /**!

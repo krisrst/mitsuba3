@@ -10,7 +10,7 @@
 #include <mitsuba/render/shape.h>
 
 #if defined(MI_ENABLE_CUDA)
-#include "optix/aspheric_surf.cuh"
+#include "optix/conic.cuh"
 #endif
 
 #if 0
@@ -19,13 +19,8 @@
 
 NAMESPACE_BEGIN(mitsuba)
 
-#ifdef DEBUG_RAYS
-    static int dbg = 0;
-    static int dbg2 = 0;
-#endif // DEBUG_RAYS
-
     template <typename Float, typename Spectrum>
-    class AsphSurf final : public Shape<Float, Spectrum> {
+    class Conic final : public Shape<Float, Spectrum> {
 
         using Float3 = Vector<Float, 3>;
 
@@ -37,7 +32,7 @@ NAMESPACE_BEGIN(mitsuba)
             using typename Base::ScalarIndex;
             using typename Base::ScalarSize;
 
-        AsphSurf(const Properties &props) : Base(props) {
+        Conic(const Properties &props) : Base(props) {
             /// Are the normals pointing inwards relative to the sphere? default: yes for negative curvature, no for positive curvature
             /// This means that the normals are always pointing in the negative z direction by default, i.e. the inside is towards the right halfspace along the z-axis
 
@@ -62,11 +57,11 @@ NAMESPACE_BEGIN(mitsuba)
 
             update();
 
-            // AsphSurfes' z limit
+            // Conic's z limit
             m_z_lim = ((dr::sqr(m_h_lim.scalar()) * m_p.scalar()) / (1 + sqrt(1 - (1 + m_k.scalar()) * dr::sqr(m_h_lim.scalar()*m_p.scalar()))));
 
             // How far into z plane?
-            fprintf(stdout, "AsphSurf using inv_norm=%s kappa=%.2f radius=%.2f (rho=%f) hlim=%.2f zlim=%.2f\n",
+            fprintf(stdout, "Conic using inv_norm=%s kappa=%.2f radius=%.2f (rho=%f) hlim=%.2f zlim=%.2f\n",
                     m_flip_normals ? "true" : "false",
                     (double) m_k.scalar(), (double) m_r.scalar(), (double) m_p.scalar(),
                     (double) m_h_lim.scalar(), (double) m_z_lim.scalar());
@@ -327,22 +322,13 @@ NAMESPACE_BEGIN(mitsuba)
                                                        dr::Infinity<FloatP>) );
 
                     t = dr::select( near_t <= maxt, t, dr::Infinity<FloatP> );
-#ifdef DEBUG_RAYS
-                    dr::mask_t<FloatP> result = (t != dr::Infinity<FloatP>);
+                    /*
+                    dr::mask_t<FloatP> active_ = (near_t <= maxt);
 
-                    Ray3fP out_ray;
+                    t = dr::select( active_, t, dr::Infinity<FloatP> );
 
-                    if( dr::any_or<true>( result ) )
-                    if( 0 || ( ++dbg2 > 30000 ) ){
-                        
-                        out_ray.o = ray(t);
-
-                        std::cerr << "point1," << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "\n";
-                        //std::cerr << "vec1," << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "," << ray.d[0] << "," << ray.d[1] << "," << ray.d[2]  << "\n";
-                        std::cerr << "point2," << out_ray.o[0] << "," << out_ray.o[1] << "," << out_ray.o[2] << "\n";
-                        dbg2 = 0;
-                    }
-#endif
+                    active &= active_;
+                    */
 
                     return { t, dr::zeros<Point<FloatP, 2>>(), ((uint32_t) -1), 0 };
                 }
@@ -484,9 +470,9 @@ NAMESPACE_BEGIN(mitsuba)
         void optix_prepare_geometry() override {
             if constexpr (dr::is_cuda_v<Float>) {
                 if (!m_optix_data_ptr)
-                    m_optix_data_ptr = jit_malloc(AllocType::Device, sizeof(OptixAsphSurfData));
+                    m_optix_data_ptr = jit_malloc(AllocType::Device, sizeof(OptixConicData));
 
-                OptixAsphSurfData data = { bbox(),
+                OptixConicData data = { bbox(),
                     (Vector<float, 3>) m_center.scalar(),
                     (float) m_r.scalar(),
                     (float) m_k.scalar(),
@@ -497,14 +483,14 @@ NAMESPACE_BEGIN(mitsuba)
                     m_flip_normals };
 
                 jit_memcpy(JitBackend::CUDA, m_optix_data_ptr,
-                           &data, sizeof(OptixAsphSurfData));
+                           &data, sizeof(OptixConicData));
             }
         }
 #endif
 
         std::string to_string() const override {
             std::ostringstream oss;
-            oss << "AsphSurf[" << std::endl
+            oss << "Conic[" << std::endl
                 << "  to_world = " << string::indent(m_to_world, 13) << "," << std::endl
                 << "  center = "  << m_center << "," << std::endl
                 << "  radius = "  << m_r << "," << std::endl
@@ -537,6 +523,6 @@ NAMESPACE_BEGIN(mitsuba)
             bool m_flip_normals;
     };
 
-    MI_IMPLEMENT_CLASS_VARIANT(AsphSurf, Shape)
-    MI_EXPORT_PLUGIN(AsphSurf, "AsphSurf intersection primitive");
+    MI_IMPLEMENT_CLASS_VARIANT(Conic, Shape)
+    MI_EXPORT_PLUGIN(Conic, "Conic intersection primitive");
     NAMESPACE_END(mitsuba)
