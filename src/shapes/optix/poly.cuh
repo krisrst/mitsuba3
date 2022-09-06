@@ -11,6 +11,7 @@ struct OptixPolyData {
     optix::BoundingBox3f bbox;
     optix::Vector3f center;
 
+    /*
     float radius;
 
     float k;
@@ -20,6 +21,7 @@ struct OptixPolyData {
     float z_lim;
 
     bool flip_normals;
+    */
 };
 
 #if 0

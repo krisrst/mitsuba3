@@ -323,6 +323,8 @@ NAMESPACE_BEGIN(mitsuba)
 
                     t = dr::select( near_t <= maxt, t, dr::Infinity<FloatP> );
 
+#warning "Missing clear active??"
+
                     return { t, dr::zeros<Point<FloatP, 2>>(), ((uint32_t) -1), 0 };
                 }
 
