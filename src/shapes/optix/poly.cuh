@@ -9,22 +9,23 @@
 
 struct OptixPolyData {
     optix::BoundingBox3f bbox;
+    optix::Transform4f to_world;
+    optix::Transform4f to_object;
     optix::Vector3f center;
 
-    /*
-    float radius;
-
     float k;
-    float p;
+    float c;
     float r;
     float h_lim;
-    float z_lim;
+    float poly_coefs[NUM_POLY_TERMS];
+    bool  poly_is_even;
+    float z_min;
+    float z_max;
+    float z_min_base;
+    float z_max_base;
 
     bool flip_normals;
-    */
 };
-
-#if 0
 
 #ifdef __CUDACC__
 
@@ -88,13 +89,13 @@ bool __device__ find_conic_intersection( float &golden_t,
                                                 center,
                                                 z_min_base, z_max_base, h_lim );
 
-    valid_near = valid_near && (near_t0 >= ray.mint && near_t0 < ray.maxt);
+    valid_near = valid_near && (near_t0 >= 0.f && near_t0 < ray.maxt);
 
     bool valid_far = point_within_surf_bounds( ray(far_t0),
                                                center,
                                                z_min_base, z_max_base, h_lim );
 
-    valid_far = valid_far && (far_t0 >= ray.mint && far_t0 < ray.maxt);
+    valid_far = valid_far && (far_t0 >= 0.f && far_t0 < ray.maxt);
 
     if(!(valid_far || valid_near)) {
         return false;
@@ -211,10 +212,10 @@ Vector3f __device__ polyasphsurf_normal_vector(Vector3f P, Vector3f center, floa
 
 
 // Based on the "Spencer and Murty" general ray tracing procedure
-extern "C" __global__ void __intersection__polyasphsurf()
+extern "C" __global__ void __intersection__poly()
 {
     const OptixHitGroupData *sbt_data = (OptixHitGroupData*) optixGetSbtDataPointer();
-    OptixPolyAsphSurfData *asurf = (OptixPolyAsphSurfData *)sbt_data->data;
+    OptixPolyData *asurf = (OptixPolyData *)sbt_data->data;
 
     // Ray in instance-space
     Ray3f ray = get_ray();
@@ -260,66 +261,9 @@ extern "C" __global__ void __intersection__polyasphsurf()
 }
 
 
-extern "C" __global__ void __closesthit__polyasphsurf() {
-    unsigned int launch_index = calculate_launch_index();
-
-    if (params.is_ray_test()) {
-        params.out_hit[launch_index] = true;
-    } else {
-        const OptixHitGroupData *sbt_data = (OptixHitGroupData *) optixGetSbtDataPointer();
-        OptixPolyAsphSurfData *asurf = (OptixPolyAsphSurfData *)sbt_data->data;
-
-        // Ray in instance-space
-        Ray3f ray = get_ray();
-
-        // Early return for ray_intersect_preliminary call
-        if (params.is_ray_intersect_preliminary()) {
-            write_output_pi_params(params, launch_index, sbt_data->shape_ptr, 0, Vector2f(), ray.maxt);
-            return;
-        }
-
-        /* Compute and store information describing the intersection. This is
-           very similar to AsphSurf::compute_surface_interaction() */
-
-
-        // From cylinder.h
-        Vector3f P = ray( ray.maxt );
-
-        Vector3f ns = polyasphsurf_normal_vector(P, asurf->center, asurf->c, asurf->k, asurf->poly_coefs, asurf->poly_is_even);
-
-        if( ! asurf->flip_normals )
-            ns = normalize( ns );
-        else
-            ns = normalize( -ns );
-
-        Vector3f ng = ns;
-
-        Vector2f uv;
-        Vector3f dp_du, dp_dv;
-        if (params.has_uv()) {
-
-            Vector3f local = asurf->to_object.transform_point(P);
-
-            uv = Vector2f( local.x() / asurf->r,
-                             local.y() / asurf->r );
-
-            if (params.has_dp_duv()) {
-
-                dp_du = Vector3f( ns[0], 1.0, 0.0 );
-                dp_dv = Vector3f( ns[1], 0.0, 1.0 );
-
-            }
-        }
-
-        Vector3f dn_du, dn_dv;
-
-        dn_du = dp_du; // <<
-        dn_dv = dp_dv; // Was flipped for negative radius
-
-        // Produce all of this
-        write_output_si_params(params, launch_index, sbt_data->shape_ptr,
-                               0, P, uv, ns, ng, dp_du, dp_dv, dn_du, dn_dv, ray.maxt);
-    }
+extern "C" __global__ void __closesthit__poly() {
+    const OptixHitGroupData *sbt_data = (OptixHitGroupData *) optixGetSbtDataPointer();
+    set_preliminary_intersection_to_payload(
+        optixGetRayTmax(), Vector2f(), 0, sbt_data->shape_registry_id);
 }
-#endif
 #endif

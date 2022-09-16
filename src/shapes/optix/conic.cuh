@@ -5,7 +5,7 @@
 #include <mitsuba/render/optix/common.h>
 #include <mitsuba/render/optix/math.cuh>
 
-struct OptixAsphSurfData {
+struct OptixConicData {
     optix::BoundingBox3f bbox;
     optix::Vector3f center;
 
@@ -71,10 +71,10 @@ bool __device__ find_intersections0( float &near_t, float &far_t,
 }
 
 
-extern "C" __global__ void __intersection__asphsurf() {
+extern "C" __global__ void __intersection__conic() {
     const OptixHitGroupData *sbt_data = (OptixHitGroupData*) optixGetSbtDataPointer();
 
-    OptixAsphSurfData *asurf = (OptixAsphSurfData *)sbt_data->data;
+    OptixConicData *asurf = (OptixConicData *)sbt_data->data;
 
     // Ray in instance-space
     Ray3f ray = get_ray();
@@ -131,7 +131,7 @@ extern "C" __global__ void __intersection__asphsurf() {
  * This function is much simpler now than in mitsuba2.
  * So try to just leave it like this.
  * */
-extern "C" __global__ void __closesthit__asphsurf() {
+extern "C" __global__ void __closesthit__conic() {
     const OptixHitGroupData *sbt_data = (OptixHitGroupData *) optixGetSbtDataPointer();
     set_preliminary_intersection_to_payload(
         optixGetRayTmax(), Vector2f(), 0, sbt_data->shape_registry_id);

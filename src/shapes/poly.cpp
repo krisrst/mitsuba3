@@ -20,7 +20,7 @@
 NAMESPACE_BEGIN(mitsuba)
 
     template <typename Float, typename Spectrum>
-    class PolySurf final : public Shape<Float, Spectrum> {
+    class Poly final : public Shape<Float, Spectrum> {
 
         using Float3 = Vector<Float, 3>;
 
@@ -32,7 +32,7 @@ NAMESPACE_BEGIN(mitsuba)
             using typename Base::ScalarIndex;
         using typename Base::ScalarSize;
 
-        PolySurf(const Properties &props) : Base(props) {
+        Poly(const Properties &props) : Base(props) {
             /// Are the normals pointing inwards relative to the sphere? default: yes for negative curvature, no for positive curvature
             /// This means that the normals are always pointing in the negative z direction by default, i.e. the inside is towards the right halfspace along the z-axis
 
@@ -78,10 +78,10 @@ NAMESPACE_BEGIN(mitsuba)
             find_shape_bounds(m_z_min, m_z_max, false);
             find_shape_bounds(m_z_min_base, m_z_max_base, true);
 
-            // PolySurfes' z limit
+            // Polyes' z limit
             //m_z_lim = ((dr::sqr(m_h_lim.scalar()) * m_p.scalar()) / (1 + sqrt(1 - (1 + m_k.scalar()) * dr::sqr(m_h_lim.scalar()*m_p.scalar()))));
 
-            fprintf(stdout, "PolySurf using kappa=%.2f radius=%.2f (rho=%f) hlim=%.2f z_min=%.2f z_max=%.2f z_min_base=%.2f z_max_base=%.2f\n",
+            fprintf(stdout, "Poly using kappa=%.2f radius=%.2f (rho=%f) hlim=%.2f z_min=%.2f z_max=%.2f z_min_base=%.2f z_max_base=%.2f\n",
                     (double) m_k.scalar(), (double) m_r.scalar(), (double) m_p.scalar(),
                     (double) m_h_lim.scalar(), 
                     (double) m_z_min, (double)m_z_max,
@@ -766,14 +766,24 @@ NAMESPACE_BEGIN(mitsuba)
                     m_optix_data_ptr = jit_malloc(AllocType::Device, sizeof(OptixPolyData));
 
                 OptixPolyData data = { bbox(),
-                    (Vector<float, 3>) m_center.scalar() /*,
-                    (float) m_r.scalar(),
+                    m_to_world.scalar(),
+                    m_to_object.scalar(), 
+                    m_center.scalar(),
+                    //(Vector<float, 3>) m_center.scalar(),
                     (float) m_k.scalar(),
                     (float) m_p.scalar(),
                     (float) m_r.scalar(),
                     (float) m_h_lim.scalar(),
-                    (float) m_z_lim.scalar(),
-                    m_flip_normals*/ };
+                    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                    m_poly_is_even,
+                    m_z_min, m_z_max,
+                    m_z_min_base, m_z_max_base,
+                    m_flip_normals };
+
+                for(size_t pi=0; pi < NUM_POLY_TERMS; pi++)
+                {
+                    data.poly_coefs[pi] = m_poly[pi];
+                }
 
                 jit_memcpy(JitBackend::CUDA, m_optix_data_ptr,
                            &data, sizeof(OptixPolyData));
@@ -783,7 +793,7 @@ NAMESPACE_BEGIN(mitsuba)
 
         std::string to_string() const override {
             std::ostringstream oss;
-            oss << "PolySurf[" << std::endl
+            oss << "Poly[" << std::endl
                 << "  to_world = " << string::indent(m_to_world, 13) << "," << std::endl
                 << "  center = "  << m_center << "," << std::endl
                 << "  radius = "  << m_r << "," << std::endl
@@ -823,6 +833,6 @@ NAMESPACE_BEGIN(mitsuba)
             bool m_flip_normals;
     };
 
-MI_IMPLEMENT_CLASS_VARIANT(PolySurf, Shape)
-    MI_EXPORT_PLUGIN(PolySurf, "PolySurf intersection primitive");
+MI_IMPLEMENT_CLASS_VARIANT(Poly, Shape)
+    MI_EXPORT_PLUGIN(Poly, "Poly intersection primitive");
 NAMESPACE_END(mitsuba)
