@@ -219,7 +219,6 @@ int main(int argc, char *argv[]) {
         }
 
         if( *arg_dbgrays ){
-            std::cout << "trur!" << std::endl;
             debugrays = true;
         }
 
@@ -318,6 +317,10 @@ int main(int argc, char *argv[]) {
         DRJIT_MARK_USED(arg_optim_lev);
         DRJIT_MARK_USED(arg_source);
 #endif
+
+#warning "Hacky way to prevent complaining on logging rays"
+        jit_set_flag( JitFlag::LoopRecord, 0 );
+        jit_set_flag( JitFlag::VCallRecord, 0 );
 
         if (!cuda && !llvm &&
             (*arg_optim_lev || *arg_wavefront || *arg_source || *arg_vec_width))

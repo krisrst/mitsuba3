@@ -126,9 +126,29 @@ Scene<Float, Spectrum>::ray_intersect(const Ray3f &ray, uint32_t ray_flags, Mask
     MI_MASKED_FUNCTION(ProfilerPhase::RayIntersect, active);
     DRJIT_MARK_USED(coherent);
 
-    if( this->dbgrays ){
-        ray_fp << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "," << ray.d[0] << "," << ray.d[1] << "," << ray.d[2] << std::endl;
+    if constexpr (dr::is_jit_v<Float>) {
+        if( this->dbgrays ){
+            // cuda_rgb
+            int i;
+            for(i=0; i < ray.o[0].size(); i++){
+                ray_fp << ray.o[0][i] << ",";
+                ray_fp << ray.o[1][i] << ",";
+                ray_fp << ray.o[2][i] << ",";
+                ray_fp << ray.d[0][i] << ",";
+                ray_fp << ray.d[1][i] << ",";
+                ray_fp << ray.d[2][i] << std::endl;
+            }
+        }
     }
+    else{
+        // scalar_rgb
+        if( this->dbgrays ){
+            //std::cout << typeid(ray.o[0]).name() << std::endl;
+            ray_fp << ray.o[0] << "," << ray.o[1] << "," << ray.o[2] << "," << ray.d[0] << "," << ray.d[1] << "," << ray.d[2] << std::endl;
+        }
+
+    }
+
 
     if constexpr (dr::is_cuda_v<Float>)
         return ray_intersect_gpu(ray, ray_flags, active);
